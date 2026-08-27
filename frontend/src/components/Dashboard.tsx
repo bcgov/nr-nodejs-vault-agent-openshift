@@ -5,6 +5,12 @@ import { useEffect, useState } from 'react'
 import { Table, Modal, Button } from 'react-bootstrap'
 import apiService from '@/service/api-service'
 
+type VaultSecretMetadata = {
+  available: boolean
+  length: number
+  sha256: string | null
+}
+
 type ModalProps = {
   show: boolean
   onHide: () => void
@@ -34,6 +40,7 @@ const ModalComponent: FC<ModalProps> = ({ show, onHide, user }) => {
 const Dashboard: FC = () => {
   const [data, setData] = useState<any>([])
   const [selectedUser, setSelectedUser] = useState<UserDto | undefined>(undefined)
+  const [secretMetadata, setSecretMetadata] = useState<VaultSecretMetadata | null>(null)
 
   useEffect(() => {
     apiService
@@ -56,12 +63,29 @@ const Dashboard: FC = () => {
       })
   }, [])
 
+  useEffect(() => {
+    apiService
+      .getAxiosInstance()
+      .get('/v1/vault-secret')
+      .then((response: AxiosResponse<VaultSecretMetadata>) => setSecretMetadata(response.data))
+      .catch((error) => console.error(error))
+  }, [])
+
   const handleClose = () => {
     setSelectedUser(undefined)
   }
 
   return (
     <div className="min-vh-45 mh-45 mw-50 ml-4">
+      <section aria-labelledby="vault-secret-heading" className="mb-4">
+        <h2 id="vault-secret-heading">Vault secret metadata</h2>
+        <p>
+          {secretMetadata?.available
+            ? `Length: ${secretMetadata.length} characters`
+            : 'Secret is not available'}
+        </p>
+        {secretMetadata?.available && <p>SHA-256: {secretMetadata.sha256}</p>}
+      </section>
       <Table striped bordered hover>
         <thead>
           <tr>

@@ -9,10 +9,11 @@ import { AppController } from './app.controller'
 import { MetricsController } from './metrics.controller'
 import { TerminusModule } from '@nestjs/terminus'
 import { HealthController } from './health.controller'
+import { VaultSecretController } from './vault-secret.controller'
 
 @Module({
   imports: [ConfigModule.forRoot(), TerminusModule, UsersModule],
-  controllers: [AppController, MetricsController, HealthController],
+  controllers: [AppController, MetricsController, HealthController, VaultSecretController],
   providers: [AppService],
 })
 export class AppModule {

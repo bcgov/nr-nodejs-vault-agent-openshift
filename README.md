@@ -31,6 +31,25 @@ This repository provides a template to rapidly deploy a modern web application s
     * Frontend: TypeScript, Caddy Server with Coraza WAF
     * Backend: TypeScript, Nest.js
 
+## Vault Agent Integration
+
+Vault Agent is managed in the separate [nr-vault-agent-integration](https://github.com/bcgov/nr-vault-agent-integration) repository. This application consumes it as a separate Helm release; the application repository stores only its non-secret configuration in [deploy/vault-agent-values.yaml](deploy/vault-agent-values.yaml).
+
+Install or upgrade Vault Agent in the same OpenShift namespace as the application, before deploying the backend:
+
+```sh
+helm upgrade --install ${NAME}-${ZONE} \
+    /home/gruan/projects/bcgov/nr-vault-agent-integration/vault-agent \
+    --namespace "${NAMESPACE}" \
+    --values deploy/vault-agent-values.yaml
+```
+
+For CI or GitOps, replace the local chart path with the packaged chart from the shared chart repository or OCI registry. Keep the Helm release name as `${NAME}-${ZONE}`. The chart then creates `${NAME}-${ZONE}-vault-agent-secrets`, which the backend mounts at `/vault/output`.
+
+The existing `knox-audit-secret` Kubernetes Secret must be present in the namespace with `role_id` and `secret_id` keys. It is used only by Vault Agent. The backend reads the rendered file and exposes only its character length and SHA-256 digest at `/api/v1/vault-secret`; the frontend displays those metadata values and never receives the secret itself.
+
+Each application can reuse the shared chart by copying [deploy/vault-agent-values.yaml](deploy/vault-agent-values.yaml) and changing `vaultAgent.secretPath` and `vaultAgent.secretKey`. Chart upgrades happen independently with `helm upgrade`, so applications can pin or adopt shared chart versions on their own schedule.
+
 
 # Setup
 

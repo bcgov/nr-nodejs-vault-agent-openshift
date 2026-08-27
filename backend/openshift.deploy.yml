@@ -37,6 +37,9 @@ parameters:
   - name: LOG_LEVEL
     description: Application log level (debug|info|warn|error)
     value: "info"
+  - name: VAULT_AGENT_PVC_NAME
+    description: Name of the PVC rendered by the separate Vault Agent Helm chart.
+    value: ${NAME}-${ZONE}-vault-agent-secrets
 objects:
   - apiVersion: apps/v1
     kind: Deployment
@@ -79,6 +82,12 @@ objects:
               env:
                 - name: LOG_LEVEL
                   value: ${LOG_LEVEL}
+                - name: VAULT_AGENT_SECRET_FILE
+                  value: /vault/output/service.env
+                # dotenv/config (imported at app startup) auto-loads this file,
+                # populating process.env.DB_USERNAME / DB_PASSWORD
+                - name: DOTENV_CONFIG_PATH
+                  value: /vault/output/service.env
               resources:
                 requests:
                   cpu: ${CPU_REQUEST}
@@ -96,6 +105,9 @@ objects:
               volumeMounts:
                 - name: tmp
                   mountPath: /tmp
+                - name: vault-agent-output
+                  mountPath: /vault/output
+                  readOnly: true
               startupProbe:
                 httpGet:
                   path: /api/health
@@ -124,6 +136,9 @@ objects:
               emptyDir:
                 medium: Memory
                 sizeLimit: 256Mi
+            - name: vault-agent-output
+              persistentVolumeClaim:
+                claimName: ${VAULT_AGENT_PVC_NAME}
   - apiVersion: v1
     kind: Service
     metadata:
