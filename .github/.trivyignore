@@ -72,7 +72,7 @@ AVD-KSV-0011
 # ------------------------------------------------------------------------------
 # Why Ignored:
 # Standard containers define memory limits, but lightweight utility/init containers
-# (e.g., wait-for-db or migrations) may omit them to prevent OOM termination of brief
+# Short-lived build jobs may omit them to prevent OOM termination of brief
 # startup tasks.
 # ------------------------------------------------------------------------------
 KSV018

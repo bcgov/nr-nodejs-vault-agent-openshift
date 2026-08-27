@@ -1,87 +1,46 @@
 import { Injectable } from '@nestjs/common'
-import { PrismaService } from '../prisma.service'
-
 import { CreateUserDto } from './dto/create-user.dto'
 import { UpdateUserDto } from './dto/update-user.dto'
 import { UserDto } from './dto/user.dto'
-import { Prisma } from '../../generated/prisma/client.js'
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  private users: UserDto[] = [
+    { id: 1, name: 'Demo User', email: 'demo@example.com' },
+    { id: 2, name: 'Sample User', email: 'sample@example.com' },
+  ]
+  private nextId = 3
 
-  async create(user: CreateUserDto): Promise<UserDto> {
-    const savedUser = await this.prisma.users.create({
-      data: {
-        name: user.name,
-        email: user.email,
-      },
-    })
-
-    return {
-      id: savedUser.id.toNumber(),
-      name: savedUser.name,
-      email: savedUser.email,
-    }
+  create(user: CreateUserDto): UserDto {
+    const savedUser = { id: this.nextId++, ...user }
+    this.users.push(savedUser)
+    return savedUser
   }
 
-  async findAll(): Promise<UserDto[]> {
-    const users = await this.prisma.users.findMany()
-    return users.flatMap((user) => {
-      const userDto: UserDto = {
-        id: user.id.toNumber(),
-        name: user.name,
-        email: user.email,
-      }
-      return userDto
-    })
+  findAll(): UserDto[] {
+    return [...this.users]
   }
 
-  async findOne(id: number): Promise<UserDto | null> {
-    const user = await this.prisma.users.findUnique({
-      where: {
-        id: new Prisma.Decimal(id),
-      },
-    })
+  findOne(id: number): UserDto | null {
+    return this.users.find((user) => user.id === id) ?? null
+  }
+
+  update(id: number, updateUserDto: UpdateUserDto): UserDto | null {
+    const user = this.findOne(id)
     if (!user) {
       return null
     }
-    return {
-      id: user.id.toNumber(),
-      name: user.name,
-      email: user.email,
-    }
+    Object.assign(user, updateUserDto)
+    return user
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto): Promise<UserDto> {
-    const user = await this.prisma.users.update({
-      where: {
-        id: new Prisma.Decimal(id),
-      },
-      data: {
-        name: updateUserDto.name,
-        email: updateUserDto.email,
-      },
-    })
-    return {
-      id: user.id.toNumber(),
-      name: user.name,
-      email: user.email,
+  remove(id: number): { deleted: boolean; message?: string } {
+    const index = this.users.findIndex((user) => user.id === id)
+    if (index === -1) {
+      return { deleted: false, message: 'User not found.' }
     }
-  }
-
-  async remove(id: number): Promise<{ deleted: boolean; message?: string }> {
-    try {
-      await this.prisma.users.delete({
-        where: {
-          id: new Prisma.Decimal(id),
-        },
-      })
-      return { deleted: true }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      return { deleted: false, message }
-    }
+    this.users.splice(index, 1)
+    return { deleted: true }
   }
 
   async searchUsers(
@@ -105,17 +64,12 @@ export class UsersService {
     } catch {
       throw new Error('Invalid query parameters')
     }
-    const users = await this.prisma.users.findMany({
-      skip: (page - 1) * limit,
-      take: parseInt(String(limit)),
-      orderBy: sortObj,
-      where: this.convertFiltersToPrismaFormat(filterObj),
-    })
-
-    const count = await this.prisma.users.count({
-      orderBy: sortObj,
-      where: this.convertFiltersToPrismaFormat(filterObj),
-    })
+    const filteredUsers = this.users.filter((user) =>
+      filterObj.every((item) => this.matchesFilter(user, item)),
+    )
+    const sortedUsers = this.sortUsers(filteredUsers, sortObj)
+    const users = sortedUsers.slice((page - 1) * limit, page * limit)
+    const count = sortedUsers.length
 
     return {
       users,
@@ -126,34 +80,52 @@ export class UsersService {
     }
   }
 
-  public convertFiltersToPrismaFormat(
-    filterObj: Array<{ key: string; operation: string; value: unknown }>,
-  ): Record<string, unknown> {
-    const prismaFilterObj: Record<string, unknown> = {}
-
-    for (const item of filterObj) {
-      if (item.operation === 'like') {
-        prismaFilterObj[item.key] = { contains: item.value }
-      } else if (item.operation === 'eq') {
-        prismaFilterObj[item.key] = { equals: item.value }
-      } else if (item.operation === 'neq') {
-        prismaFilterObj[item.key] = { not: { equals: item.value } }
-      } else if (item.operation === 'gt') {
-        prismaFilterObj[item.key] = { gt: item.value }
-      } else if (item.operation === 'gte') {
-        prismaFilterObj[item.key] = { gte: item.value }
-      } else if (item.operation === 'lt') {
-        prismaFilterObj[item.key] = { lt: item.value }
-      } else if (item.operation === 'lte') {
-        prismaFilterObj[item.key] = { lte: item.value }
-      } else if (item.operation === 'in') {
-        prismaFilterObj[item.key] = { in: item.value }
-      } else if (item.operation === 'notin') {
-        prismaFilterObj[item.key] = { not: { in: item.value } }
-      } else if (item.operation === 'isnull') {
-        prismaFilterObj[item.key] = { equals: null }
-      }
+  private matchesFilter(
+    user: UserDto,
+    item: { key: string; operation: string; value: unknown },
+  ): boolean {
+    const actual = user[item.key as keyof UserDto]
+    switch (item.operation) {
+      case 'like':
+        return String(actual).toLowerCase().includes(String(item.value).toLowerCase())
+      case 'eq':
+        return actual === item.value
+      case 'neq':
+        return actual !== item.value
+      case 'gt':
+        return actual > (item.value as typeof actual)
+      case 'gte':
+        return actual >= (item.value as typeof actual)
+      case 'lt':
+        return actual < (item.value as typeof actual)
+      case 'lte':
+        return actual <= (item.value as typeof actual)
+      case 'in':
+        return Array.isArray(item.value) && item.value.includes(actual)
+      case 'notin':
+        return Array.isArray(item.value) && !item.value.includes(actual)
+      case 'isnull':
+        return actual === null || actual === undefined
+      default:
+        return true
     }
-    return prismaFilterObj
+  }
+
+  private sortUsers(users: UserDto[], sort: unknown): UserDto[] {
+    const sortEntries = Array.isArray(sort) ? sort : []
+    return [...users].sort((left, right) => {
+      for (const entry of sortEntries) {
+        const [key, direction] = Object.entries(entry as Record<string, unknown>)[0] ?? []
+        const comparison = String(left[key as keyof UserDto]).localeCompare(
+          String(right[key as keyof UserDto]),
+          undefined,
+          { numeric: true },
+        )
+        if (comparison !== 0) {
+          return direction === 'desc' ? -comparison : comparison
+        }
+      }
+      return 0
+    })
   }
 }

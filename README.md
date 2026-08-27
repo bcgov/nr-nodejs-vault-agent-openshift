@@ -24,11 +24,10 @@ This repository provides a template to rapidly deploy a modern web application s
 * Resource Tuning with Horizontal Pod Autoscaler
 * Affinity and anti-affinity for Scheduling on different worker nodes
 * Rolling updates with zero downtime in PROD
-* Database Migrations with Flyway
 * Pod disruption budgets for high availability
 * Self-healing through probes/checks (startup, readiness, liveness)
 * **Sample application stack:**
-    * Database: Postgres, Flyway
+    * In-memory demo data in the backend
     * Frontend: TypeScript, Caddy Server with Coraza WAF
     * Backend: TypeScript, Nest.js
 
@@ -102,13 +101,10 @@ Here is the arrangement of secrets, variables and environments for this reposito
 | none        | `vars.oc_server`       | Common server address (repository-level)        |
 | none        | `secrets.oc_namespace` | PR namespace (repository-level)                 |
 | none        | `secrets.oc_token`     | PR service token (repository-level)             |
-| none        | `secrets.db_password`  | PR database password (repository-level)         |
 | test        | `secrets.oc_namespace` | TEST namespace (environment-level)              |
 | test        | `secrets.oc_token`     | TEST service token (environment-level)          |
-| test        | `secrets.db_password`  | TEST database password (environment-level)       |
 | prod        | `secrets.oc_namespace` | PROD namespace (environment-level)              |
 | prod        | `secrets.oc_token`     | PROD service token (environment-level)          |
-| prod        | `secrets.db_password`  | PROD database password (environment-level)       |
 
 ### Secret Values
 
@@ -164,14 +160,6 @@ If SonarCloud is being used each application will have its own token.  Single-ap
 * Reference (monorepo): `${{ secrets.SONAR_TOKEN_BACKEND }}`, `${{ secrets.SONAR_TOKEN_FRONTEND }}`, etc
 
 BC Government employees can request SonarCloud projects by creating an [issue](https://github.com/bcgov/devops-requests/issues/new/choose) with the platform team.  Please make sure to request a monorepo with component names (e.g. backend, frontend), which may not be explained in their directions.
-
-**db_password**
-
-The password used for the PostgreSQL database. This **MUST** be a strong, unique password and **DISTINCT** across all environments (pr, test, prod). Reusing the same password in development/PRs as in production is a critical security risk.
-
-* Reference: `${{ secrets.db_password }}`
-* Minimum 12 characters recommended for production.
-* **Pro-tip**: Use a password manager (like BitWarden, 1Password, or KeePass) to generate and store long, random, and unique passwords for each environment. Avoid simple, guessable passwords like `password` or `secure`.
 
 **`SYSDIG_API_TOKEN`**
 
@@ -373,7 +361,7 @@ Don't forget to add your team members!
 
 This repository is architected and hardened out-of-the-box to align with Levels 1 and 2 of the **OWASP Application Security Verification Standard (ASVS) v4.0.3**. A detailed security mapping matrix is documented in [SECURITY.md](file:///home/derek/Repos/quickstart-openshift/SECURITY.md#owasp-asvs-alignment), detailing our implementation of:
 * **Active WAF Defense:** Inline Coraza WAF running inside the Caddy reverse proxy.
-* **Tiered Isolation:** NetworkPolicies enforcing network boundaries between the frontend, backend, and database tiers.
+* **Tiered Isolation:** NetworkPolicies enforcing network boundaries between the frontend and backend tiers.
 * **Platform/Container Hardening:** Read-only root filesystems, non-root execution, privilege escalation blocks, default seccomp profiles, and drop capabilities.
 * **Build-Time & Dynamic Testing:** Automated static analysis (Trivy, CodeQL), dependency auditing (Renovate, Knip), and weekly dynamic vulnerability scans (**OWASP ZAP**).
 
@@ -532,8 +520,6 @@ Runs on merge to main branch.
 * Labels successful deployment images as PROD
 * Sysdig email alerts synced to PROD (no-op if `SYSDIG_API_TOKEN` is unset)
 
-\* excludes database changes
-
 ![](.github/graphics/merge.png)
 
 ## Scheduled
@@ -541,7 +527,6 @@ Runs on merge to main branch.
 Runs on scheduled job (cronjob) or workflow dispatch.
 
 * PR environment purge
-* Generate SchemaSpy documentation
 * Tests (e2e, load, integration) on TEST deployment
 
 ![](.github/graphics/scheduled.png)
@@ -563,7 +548,7 @@ Before transitioning an application utilizing this template to full maintenance 
 
 - [ ] **Robust Automated Test Coverage**: A high test coverage threshold (e.g., 70% or higher for both statements and branches) should be enforced. Unit, integration, and end-to-end tests must be capable of catching regressions automatically.
 - [ ] **PR Preview Environments**: Ensure sandboxed preview environments deploy reliably to OpenShift for all pull requests.
-- [ ] **Automated Smoke Tests / Probes**: The application must implement runtime health checks that verify connectivity to database instances and external downstream services (e.g., S3, Keycloak, or mail services).
+- [ ] **Automated Smoke Tests / Probes**: The application must implement runtime health checks that verify the application and any external downstream services (e.g., S3, Keycloak, or mail services).
 - [ ] **Automerge Policies**: Verify that the Mend Renovate GitHub app is integrated and allowed to manage automerges for passing builds.
 
 ## Runtime Health Checks & Smoke Testing
@@ -573,10 +558,10 @@ To safely automate dependency updates, runtime health checks are mandatory to ca
 ### QuickStart Health Check Implementation
 
 This template provides out-of-the-box support for self-healing and verification through container probes:
-- **NestJS Backend**: Implements an `/api/health` endpoint using NestJS Terminus (currently checks DB connectivity via Prisma).
+- **NestJS Backend**: Implements an `/api/health` endpoint using NestJS Terminus.
 - **Frontend (Caddy/Vite)**: OpenShift readiness/liveness probes are configured to check `/` to confirm the web server is responsive and serving assets.
 
-*Tip: For a fully mature maintenance mode setup, customize the backend health checks to query external APIs and database migrations. If a dependency goes down, the health check should return `503 Service Unavailable`, blocking the automated merge.*
+*Tip: For a fully mature maintenance mode setup, customize the backend health checks to query external APIs. If a dependency goes down, the health check should return `503 Service Unavailable`, blocking the automated merge.*
 
 ## Automerge Expectations
 

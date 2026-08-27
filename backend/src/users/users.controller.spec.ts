@@ -8,7 +8,6 @@ import { HttpException } from '@nestjs/common'
 import type { CreateUserDto } from './dto/create-user.dto'
 import type { UpdateUserDto } from './dto/update-user.dto'
 import type { UserDto } from './dto/user.dto'
-import { PrismaService } from '../prisma.service'
 describe('UserController', () => {
   let controller: UsersController
   let usersService: UsersService
@@ -17,13 +16,7 @@ describe('UserController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
-      providers: [
-        UsersService,
-        {
-          provide: PrismaService,
-          useValue: {},
-        },
-      ],
+      providers: [UsersService],
     }).compile()
     usersService = module.get<UsersService>(UsersService)
     controller = module.get<UsersController>(UsersController)
