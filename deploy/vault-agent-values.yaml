@@ -3,12 +3,12 @@
 vaultAgent:
   vaultAddress: https://knox.io.nrs.gov.bc.ca
   approleMountPath: auth/vs_apps_approle
-  loginSecretName: knox-audit-secret
+  loginSecretName: knox-secret
   pvcSize: 64Mi
 
   secrets:
     - name: service
-      secretPath: dev/data/project/service/secrets
+      secretPath: dev/oscar-example/nodejs-sample/proxy-account-ready-only
       keys:
         - db_username
         - db_password
