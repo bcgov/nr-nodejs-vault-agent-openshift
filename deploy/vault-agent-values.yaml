@@ -1,10 +1,10 @@
 # Application-specific values for the shared chart:
 # https://github.com/bcgov/nr-vault-agent-integration
 vaultAgent:
-  vaultAddress: https://knox.io.nrs.gov.bc.ca
-  approleMountPath: auth/vs_apps_approle
-  loginSecretName: knox-secret
-  pvcSize: 64Mi
+  image:
+    repository: hashicorp/vault
+    tag: 2.0.4
+    pullPolicy: Always
 
   secrets:
     - name: service

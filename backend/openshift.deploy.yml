@@ -86,8 +86,6 @@ objects:
                   value: /vault/output/service.env
                 # dotenv/config (imported at app startup) auto-loads this file,
                 # populating process.env.DB_USERNAME / DB_PASSWORD
-                - name: DOTENV_CONFIG_PATH
-                  value: /vault/output/service.env
               resources:
                 requests:
                   cpu: ${CPU_REQUEST}
