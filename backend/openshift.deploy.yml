@@ -150,6 +150,27 @@ objects:
           targetPort: 3000
       selector:
         deployment: ${NAME}-${ZONE}-${COMPONENT}
+  - apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      labels:
+        app: ${NAME}-${ZONE}
+      name: ${NAME}-${ZONE}-${COMPONENT}-allow-frontend
+    spec:
+      podSelector:
+        matchLabels:
+          deployment: ${NAME}-${ZONE}-${COMPONENT}
+      policyTypes:
+        - Ingress
+      ingress:
+        # Same-tier "app" label is shared by both frontend and backend Deployments
+        - from:
+            - podSelector:
+                matchLabels:
+                  app: ${NAME}-${ZONE}
+          ports:
+            - protocol: TCP
+              port: 3000
   - apiVersion: autoscaling/v2
     kind: HorizontalPodAutoscaler
     metadata:
