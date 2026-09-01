@@ -25,6 +25,6 @@ export class AppModule {
         { path: 'metrics', method: RequestMethod.ALL },
         { path: 'health', method: RequestMethod.ALL },
       )
-      .forRoutes('*')
+      .forRoutes('{*path}')
   }
 }
