@@ -199,6 +199,8 @@ objects:
         kind: Service
         name: ${NAME}-${ZONE}-${COMPONENT}
         weight: 100
+      port:
+        targetPort: http
       tls:
         termination: edge
         insecureEdgeTerminationPolicy: Redirect
