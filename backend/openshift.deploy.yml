@@ -155,22 +155,19 @@ objects:
     metadata:
       labels:
         app: ${NAME}-${ZONE}
-      name: ${NAME}-${ZONE}-${COMPONENT}-allow-frontend
+      name: ${NAME}-${ZONE}-${COMPONENT}-ingress
     spec:
       podSelector:
         matchLabels:
           deployment: ${NAME}-${ZONE}-${COMPONENT}
-      policyTypes:
-        - Ingress
       ingress:
-        # Same-tier "app" label is shared by both frontend and backend Deployments
         - from:
             - podSelector:
                 matchLabels:
                   app: ${NAME}-${ZONE}
-          ports:
-            - protocol: TCP
-              port: 3000
+                  deployment: ${NAME}-${ZONE}-frontend
+      policyTypes:
+        - Ingress
   - apiVersion: autoscaling/v2
     kind: HorizontalPodAutoscaler
     metadata:
