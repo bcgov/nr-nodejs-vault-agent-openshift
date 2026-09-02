@@ -1,4 +1,4 @@
-import 'dotenv/config'
+import * as dotenv from 'dotenv'
 import type { MiddlewareConsumer } from '@nestjs/common'
 import { Module, RequestMethod } from '@nestjs/common'
 import { HTTPLoggerMiddleware } from './middleware/req.res.logger'
@@ -10,6 +10,9 @@ import { MetricsController } from './metrics.controller'
 import { TerminusModule } from '@nestjs/terminus'
 import { HealthController } from './health.controller'
 import { VaultSecretController } from './vault-secret.controller'
+
+// Secrets are rendered by the Vault Agent sidecar, not committed as a .env file.
+dotenv.config({ path: process.env.VAULT_AGENT_SECRET_FILE })
 
 @Module({
   imports: [ConfigModule.forRoot(), TerminusModule, UsersModule],
