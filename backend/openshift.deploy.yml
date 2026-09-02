@@ -39,7 +39,7 @@ parameters:
     value: "info"
   - name: VAULT_AGENT_PVC_NAME
     description: Name of the PVC rendered by the separate Vault Agent Helm chart.
-    value: nodejs-vault-agent-vault-agent-secrets
+    value: nodejs-vault-agent-secrets
 objects:
   - apiVersion: apps/v1
     kind: Deployment
