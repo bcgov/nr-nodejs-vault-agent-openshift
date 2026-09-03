@@ -1,6 +1,5 @@
 import { vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { render, screen } from '@testing-library/react'
 import Dashboard from '@/components/Dashboard'
 
 vi.mock('@tanstack/react-router', () => ({
@@ -10,23 +9,14 @@ vi.mock('@tanstack/react-router', () => ({
 describe('Dashboard', () => {
   test('renders a heading with the correct text', () => {
     render(<Dashboard />)
-    expect(screen.getByText(/Employee ID/i)).toBeInTheDocument()
+    expect(screen.getByText(/Vault secret keys/i)).toBeInTheDocument()
   })
 
-  test('opens and closes the row details modal', async () => {
-    const user = userEvent.setup()
+  test('lists each secret key with its length and digest', async () => {
     render(<Dashboard />)
 
-    // Wait for the mocked user data to load and render the View Details button.
-    const viewDetailsButton = await screen.findByRole('button', { name: /view details/i })
-    await user.click(viewDetailsButton)
-
-    expect(screen.getByText(/Row Details/i)).toBeInTheDocument()
-
-    const closeButtons = screen.getAllByRole('button', { name: 'Close' })
-    await user.click(closeButtons.at(-1)!)
-    await waitFor(() => {
-      expect(screen.queryByText(/Row Details/i)).not.toBeInTheDocument()
-    })
+    expect(await screen.findByText('db_username')).toBeInTheDocument()
+    expect(screen.getByText('db_password')).toBeInTheDocument()
+    expect(screen.getByText('a'.repeat(64))).toBeInTheDocument()
   })
 })

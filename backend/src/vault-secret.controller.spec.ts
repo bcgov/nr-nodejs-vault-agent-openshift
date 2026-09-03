@@ -13,13 +13,23 @@ describe('VaultSecretController', () => {
     delete process.env.VAULT_AGENT_SECRET_FILE
   })
 
-  it('returns only the secret length and SHA-256 digest', () => {
-    vi.mocked(readFileSync).mockReturnValue('demo-secret\n')
+  it('returns only the key names, lengths and SHA-256 digests', () => {
+    vi.mocked(readFileSync).mockReturnValue('db_username=demo-secret\ndb_password=pw\n')
 
     expect(controller.getMetadata()).toEqual({
       available: true,
-      length: 11,
-      sha256: 'cd577fe2561ebff23505db0bb006300c7cdecbd46bc0e03c449afafaca2c25bf',
+      keys: [
+        {
+          key: 'db_username',
+          length: 11,
+          sha256: 'cd577fe2561ebff23505db0bb006300c7cdecbd46bc0e03c449afafaca2c25bf',
+        },
+        {
+          key: 'db_password',
+          length: 2,
+          sha256: '30c952fab122c3f9759f02a6d95c3758b246b4fee239957b2d4fee46e26170c4',
+        },
+      ],
     })
   })
 
@@ -30,8 +40,7 @@ describe('VaultSecretController', () => {
 
     expect(controller.getMetadata()).toEqual({
       available: false,
-      length: 0,
-      sha256: null,
+      keys: [],
     })
   })
 })

@@ -3,7 +3,6 @@ import type { MiddlewareConsumer } from '@nestjs/common'
 import { Module, RequestMethod } from '@nestjs/common'
 import { HTTPLoggerMiddleware } from './middleware/req.res.logger'
 import { ConfigModule } from '@nestjs/config'
-import { UsersModule } from './users/users.module'
 import { AppService } from './app.service'
 import { AppController } from './app.controller'
 import { MetricsController } from './metrics.controller'
@@ -15,7 +14,7 @@ import { VaultSecretController } from './vault-secret.controller'
 dotenv.config({ path: process.env.VAULT_AGENT_SECRET_FILE })
 
 @Module({
-  imports: [ConfigModule.forRoot(), TerminusModule, UsersModule],
+  imports: [ConfigModule.forRoot(), TerminusModule],
   controllers: [AppController, MetricsController, HealthController, VaultSecretController],
   providers: [AppService],
 })
