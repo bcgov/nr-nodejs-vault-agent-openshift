@@ -8,12 +8,17 @@ services:
     entrypoint: sh -c "npm i && npm run start:dev"
     environment:
       NODE_ENV: development
+      # Stands in for the file the Vault Agent sidecar renders in OpenShift
+      VAULT_AGENT_SECRET_FILE: /vault/output/service.env
     image: *node-image
     ports: ["3001:3000"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api"]
     working_dir: "/app"
-    volumes: ["./backend:/app", "/app/node_modules"]
+    volumes:
+      - "./backend:/app"
+      - "/app/node_modules"
+      - "./deploy/local:/vault/output:ro"
 
   frontend:
     container_name: frontend

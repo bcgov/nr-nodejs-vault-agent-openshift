@@ -20,7 +20,7 @@ parameters:
     description: Organization name
     value: bcgov
   - name: DOMAIN
-    value: apps.silver.devops.gov.bc.ca
+    value: apps.gold.devops.gov.bc.ca
   - name: MIN_REPLICAS
     description: The minimum amount of replicas for the horizontal pod autoscaler.
     value: "2"
@@ -37,6 +37,9 @@ parameters:
   - name: LOG_LEVEL
     description: Application log level (debug|info|warn|error)
     value: "info"
+  - name: VAULT_AGENT_PVC_NAME
+    description: Name of the PVC rendered by the separate Vault Agent Helm chart.
+    value: nodejs-vault-agent-secrets
 objects:
   - apiVersion: apps/v1
     kind: Deployment
@@ -79,6 +82,10 @@ objects:
               env:
                 - name: LOG_LEVEL
                   value: ${LOG_LEVEL}
+                - name: VAULT_AGENT_SECRET_FILE
+                  value: /vault/output/service.env
+                # dotenv/config (imported at app startup) auto-loads this file,
+                # populating process.env.DB_USERNAME / DB_PASSWORD
               resources:
                 requests:
                   cpu: ${CPU_REQUEST}
@@ -96,6 +103,9 @@ objects:
               volumeMounts:
                 - name: tmp
                   mountPath: /tmp
+                - name: vault-agent-output
+                  mountPath: /vault/output
+                  readOnly: true
               startupProbe:
                 httpGet:
                   path: /api/health
@@ -124,6 +134,9 @@ objects:
               emptyDir:
                 medium: Memory
                 sizeLimit: 256Mi
+            - name: vault-agent-output
+              persistentVolumeClaim:
+                claimName: ${VAULT_AGENT_PVC_NAME}
   - apiVersion: v1
     kind: Service
     metadata:
@@ -137,6 +150,24 @@ objects:
           targetPort: 3000
       selector:
         deployment: ${NAME}-${ZONE}-${COMPONENT}
+  - apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      labels:
+        app: ${NAME}-${ZONE}
+      name: ${NAME}-${ZONE}-${COMPONENT}-ingress
+    spec:
+      podSelector:
+        matchLabels:
+          deployment: ${NAME}-${ZONE}-${COMPONENT}
+      ingress:
+        - from:
+            - podSelector:
+                matchLabels:
+                  app: ${NAME}-${ZONE}
+                  deployment: ${NAME}-${ZONE}-frontend
+      policyTypes:
+        - Ingress
   - apiVersion: autoscaling/v2
     kind: HorizontalPodAutoscaler
     metadata:

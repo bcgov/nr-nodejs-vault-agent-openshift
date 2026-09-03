@@ -1,0 +1,24 @@
+# Application-specific values for the shared chart:
+# https://github.com/bcgov/nr-vault-agent-integration
+vaultAgent:
+  image:
+    repository: hashicorp/vault
+    tag: 2.0.4
+    pullPolicy: Always
+
+  secrets:
+    - name: service
+      secretPath: dev/oscar-example/nodejs-sample/proxy-account-ready-only
+      keys:
+        - db_username
+        - db_password
+      format: env
+      outputFile: /vault/output/service.env
+
+  # Keep the chart's resource defaults unless this application needs overrides.
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 128Mi

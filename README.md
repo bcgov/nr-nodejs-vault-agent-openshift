@@ -31,6 +31,25 @@ This repository provides a template to rapidly deploy a modern web application s
     * Frontend: TypeScript, Caddy Server with Coraza WAF
     * Backend: TypeScript, Nest.js
 
+## Vault Agent Integration
+
+Vault Agent is managed in the separate [nr-vault-agent-integration](https://github.com/bcgov/nr-vault-agent-integration) repository. This application consumes it as a separate Helm release; the application repository stores only its non-secret configuration in [deploy/vault-agent-values.yaml](deploy/vault-agent-values.yaml).
+
+Install or upgrade Vault Agent in the same OpenShift namespace as the application, before deploying the backend:
+
+```sh
+helm upgrade --install ${NAME}-${ZONE} \
+    /home/gruan/projects/bcgov/nr-vault-agent-integration/vault-agent \
+    --namespace "${NAMESPACE}" \
+    --values deploy/vault-agent-values.yaml
+```
+
+For CI or GitOps, replace the local chart path with the packaged chart from the shared chart repository or OCI registry. Keep the Helm release name as `${NAME}-${ZONE}`. The chart then creates `${NAME}-${ZONE}-vault-agent-secrets`, which the backend mounts at `/vault/output`.
+
+The existing `knox-audit-secret` Kubernetes Secret must be present in the namespace with `role_id` and `secret_id` keys. It is used only by Vault Agent. The backend reads the rendered file and exposes only its character length and SHA-256 digest at `/api/v1/vault-secret`; the frontend displays those metadata values and never receives the secret itself.
+
+Each application can reuse the shared chart by copying [deploy/vault-agent-values.yaml](deploy/vault-agent-values.yaml) and changing `vaultAgent.secretPath` and `vaultAgent.secretKey`. Chart upgrades happen independently with `helm upgrade`, so applications can pin or adopt shared chart versions on their own schedule.
+
 
 # Setup
 
@@ -113,30 +132,30 @@ Here is the arrangement of secrets, variables and environments for this reposito
 Create separate tokens for each of the DEV, TEST and PROD namespaces.  
 
 1. Login to your OpenShift console, e.g. [Silver](https://console.apps.silver.devops.gov.bc.ca/) or [Gold](https://console.apps.gold.devops.gov.bc.ca/).
-1. Select the pulldown with your username in the top right corner.
-1. Select `Copy login command`.
-1. Follow the UI to access a one-time login with token.
-1. Paste the login command into a shell, e.g.:
+2. Select the pulldown with your username in the top right corner.
+3. Select `Copy login command`.
+4. Follow the UI to access a one-time login with token.
+5. Paste the login command into a shell, e.g.:
     ```
     oc login --token=... --server=...
     ```
-1. View available projects:
+6. View available projects:
     ```
     oc projects
     ```
-1. Switch to a namespace:
+7. Switch to a namespace:
     ```
     oc project <abc123-name>
     ```
-1. Create a service account:
+8. Create a service account:
     ```
     oc create sa github-actions
     ```
-1. Create a role binding:
+9. Create a role binding:
     ```
     oc create rolebinding github-actions-edit --clusterrole=edit --serviceaccount=$(oc project -q):github-actions
     ```
-1. Create and copy a token.  It cannot be retrieved again:
+10. Create and copy a token.  It cannot be retrieved again:
     ```
     oc create token github-actions --duration=87600h
     ```

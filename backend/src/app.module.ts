@@ -1,18 +1,21 @@
-import 'dotenv/config'
+import * as dotenv from 'dotenv'
 import type { MiddlewareConsumer } from '@nestjs/common'
 import { Module, RequestMethod } from '@nestjs/common'
 import { HTTPLoggerMiddleware } from './middleware/req.res.logger'
 import { ConfigModule } from '@nestjs/config'
-import { UsersModule } from './users/users.module'
 import { AppService } from './app.service'
 import { AppController } from './app.controller'
 import { MetricsController } from './metrics.controller'
 import { TerminusModule } from '@nestjs/terminus'
 import { HealthController } from './health.controller'
+import { VaultSecretController } from './vault-secret.controller'
+
+// Secrets are rendered by the Vault Agent sidecar, not committed as a .env file.
+dotenv.config({ path: process.env.VAULT_AGENT_SECRET_FILE })
 
 @Module({
-  imports: [ConfigModule.forRoot(), TerminusModule, UsersModule],
-  controllers: [AppController, MetricsController, HealthController],
+  imports: [ConfigModule.forRoot(), TerminusModule],
+  controllers: [AppController, MetricsController, HealthController, VaultSecretController],
   providers: [AppService],
 })
 export class AppModule {
@@ -24,6 +27,6 @@ export class AppModule {
         { path: 'metrics', method: RequestMethod.ALL },
         { path: 'health', method: RequestMethod.ALL },
       )
-      .forRoutes('*')
+      .forRoutes('{*path}')
   }
 }
